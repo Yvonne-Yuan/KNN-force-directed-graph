@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="{{url_for('static', filename='lib.js')}}"></script>
+<img height="180px" widhth="110px" style="padding-top: 100px; padding-right:100px; display: inline; float: right;" src="{{url_for('static', filename='legend.png')}}">
+<style>
+    svg{
+        float: right;
+        position: absolute;
+    }
+    .link {
+        stroke: #bbb;
+        stroke-width: .6px;
+        /* opacity: .1; */
+    }
+
+    .node text {
+        cursos: pointer;
+    }
+
+    .node circle {
+        stroke-width: 3px;
+        /* opacity: 0.9; */
+    }
+</style>
+
+<body>
+    <script>
+        //what is the counter for
+        counter = 0
+        //appends an image at the bottom left, it was an experiment
+        var tooltip = d3.select("body")
+            //i'll append text to see if it looks right
+            .append("p")
+            .style("position", "absolute")
+            .style("z-index", "10")
+            .style("visibility", "hidden")            ;
+
+        //picks the colors for you
+        var color = d3.scale.category10();
+
+        //this should depend on the screen size
+        var width = 1200, height = 1000
+
+        var width = window.innerWidth-100;
+        var height = window.innerHeight-50;
+
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        var force = d3.layout.force()
+            .distance(4)
+            .charge(-30)
+            .size([width, height]);
+
+        d3.json("{{url_for('static', filename='graphFile.json')}}", function (json) {
+            force
+                .nodes(json.nodes)
+                .links(json.links)
+                .start();
+
+            var link = svg.selectAll(".link")
+                .data(json.links)
+                .enter().append("line")
+                .attr("class", "link")
+                .style("stroke", function (d) { return color(d.group); });
+
+
+
+
+            var node = svg.selectAll(".node")
+                .data(json.nodes)
+                .enter().append("g")
+                .attr("class", "node")
+                .call(force.drag)
+
+                // i think d is the node the event occured on.. 
+                .on("mouseover", function (d) { console.log(d.group); })
+
+                .on("mouseover", function (d) { tooltip.text(d.src); 
+                // tooltip.attr('src', d.src + '.png');
+                 counter++; return tooltip.style("visibility", "visible"); })
+                .on("mousemove", function () { return tooltip.style("top", (d3.event.pageY - 15) + "px").style("left", (d3.event.pageX + 15) + "px"); })
+                .on("mouseout", function (d) { return tooltip.style("visibility", "hidden"); })
+
+                .style("fill", function (d) {
+                    return color(d.group);
+                });
+
+
+            node.append("circle")
+                .attr("r", "6");
+
+            node.append("text")
+                .attr("dx", 12)
+                .attr("dy", ".35em")
+            //.text(function(d) { return d.group });
+
+            force.on("tick", function () {
+                link.attr("x1", function (d) { return d.source.x; })
+                    .attr("y1", function (d) { return d.source.y; })
+                    .attr("x2", function (d) { return d.target.x; })
+                    .attr("y2", function (d) { return d.target.y; });
+
+                node.attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
+            });
+        });
+
+    </script>
